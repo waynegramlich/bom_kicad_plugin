@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from bom_manager import bom
+import csv
 import os
 import sexpdata                 # (LISP)S-EXPression DATA package
 from sexpdata import Symbol     # (LISP) S-expression Symobl
@@ -158,15 +159,66 @@ class Kicad(bom.Cad):
         # Perform any requested *tracing*:
         next_tracing = None if tracing is None else tracing + " "
         if tracing is not None:
-            print(f"{tracing}=>Kicad.csv_file_read(*, '{file_name}')")
+            print(f"{tracing}=>Kicad.csv_file_read(*, '{csv_file_name}')")
 
         # ...
         success = False
-        assert False, "Need to implement Kicad.csv_file_read()"
+        with open(csv_file_name) as csv_file:
+            csv_rows = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
+            assert csv_rows[0][0] == "Source:"
+            source = csv_rows[0][1]
+            assert csv_rows[1][0] == "Date:"
+            date = csv_rows[1],[1]
+            assert csv_rows[2][0] == "Tool:"
+            tool = csv_rows[2][1]
+            assert csv_rows[3][0] == "Generator:"
+            generator = csv_rows[3][1]
+            assert csv_rows[4][0] == "Component Count:"
+            component_count = int(csv_rows[4][1])
+            headers = tuple(csv_rows[5])
+            if generator.endswith("bom_csv_grouped_by_value_with_fp.py"):
+                actual_headers = headers[0:7]
+                desired_headers = (
+                    "Ref", "Qnty", "Value", "Cmp name", "Footprint", "Description", "Vendor")
+                for index, desired_header in enumerate(desired_headers):
+                    assert desired_header == actual_headers[index], f"index={index}"
+                assert (actual_headers == desired_headers), (f"Got {actual_headers} "
+                                                             f"instead of {desired_headers}")
+                project_parts = list()
+                for index, row in enumerate(csv_rows[6:6+component_count]):
+                    # Unpack *row* and further split and strip *refs_text* into *refs*:
+                    references_text, quantity, part_name, component_name, footprint = row[:5]
+                    references = references_text.split(",")
+                    references = [reference.strip() for reference in references]
+                    if tracing is not None:
+                        print(f"{tracing}Row[{index}]: "
+                              f"{quantity}\t'{part_name}'\t{references_text}")
 
+                    # Strip *comment* out of *part_name* if it exists:
+                    comment = ""
+                    colon_index = part_name.find(':')
+                    if colon_index >= 0:
+                        comment = part_name[colon_index + 1:]
+                        part_name = part_name[0:colon_index]
+
+                    # Lookup/create the *project_part* associated with *value*:
+                    project_part = project.project_part_find(part_name)
+
+                    # Create one *pose_part* for each *reference* in *references*:
+                    for reference in references:
+                        pose_part = bom.PosePart(project, project_part, reference, comment)
+                        project.pose_part_append(pose_part)
+
+                    # Ignore footprints for now:
+                    success = True
+            else:
+                assert False, (f"File '{csv_file_name}' was generated using '{generator}' "
+                               "which is not supported yet.  Use "
+                               "'bom_csv_grouped_by_value_with_fp' generator instead.")
+            
         # Wrap up any requested *tracing* and return the *success* flag:
         if tracing is not None:
-            print(f"{tracing}<=Kicad.csv_file_read(*, '{file_name}', *)=>{success}")
+            print(f"{tracing}<=Kicad.csv_file_read(*, '{csv_file_name}', *)=>{success}")
         return success
 
     # Kicad.file_read():
