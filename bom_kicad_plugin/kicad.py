@@ -64,6 +64,63 @@ class Kicad(bom.Cad):
         if tracing is not None:
             print(f"{tracing}<=Kicad.__init__()")
 
+    # Kicad.altium_csv_read():
+    def altium_csv_read(self, csv_file_name, project, tracing=None):
+        # Verify argument types:
+        assert isinstance(csv_file_name, str) and csv_file_name.endswith(".csv")
+        assert isinstance(project, bom.Project)
+        assert isinstance(tracing, str) or tracing is None
+
+        # Perform any requested *tracing*:
+        next_tracing = None if tracing is None else tracing + " "
+        if tracing is not None:
+            print(f"{tracing}=>altium_csv_read(*, '{csv_file_name}')")
+
+        # ...
+        success = False
+        with open(csv_file_name, encoding="iso-8859-1") as csv_file:
+            csv_rows = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
+            actual_headers = tuple(csv_rows[0])
+            if True:
+                desired_headers = (
+                    "Line #", "Name", "Description", "Designator", "Quantity", "TargetPrice",
+                    "Manufacturer 1", "Manufacturer Part Number 1", "Manufacturer Lifecycle 1",
+                    "Supplier 1", "Supplier Part Number 1", "Supplier Unit Price 1",
+                    "Supplier Subtotal 1")
+                for index, desired_header in enumerate(desired_headers):
+                    assert desired_header == actual_headers[index], f"index={index}"
+                assert (actual_headers == desired_headers), (f"Got {actual_headers} "
+                                                             f"instead of {desired_headers}")
+                project_parts = list()
+                for index, row in enumerate(csv_rows[2:]):
+                    # Unpack *row* and further split and strip *refs_text* into *refs*:
+                    line_number, name, description, designators_text, quantity = row[:5]
+                    designators = designators_text.split(",")
+                    designators = [designator.strip() for designator in designators]
+                    if tracing is not None:
+                        print(f"{tracing}Row[{index}]: "
+                              f"{quantity}\t'{part_name}'\t{designators_text}")
+
+                    # Lookup/create the *project_part* associated with *value*:
+                    project_part = project.project_part_find(name)
+
+                    # Create one *pose_part* for each *reference* in *references*:
+                    for designator in designators:
+                        pose_part = bom.PosePart(project, project_part, designator, "")
+                        project.pose_part_append(pose_part)
+
+                    # Ignore footprints for now:
+                    success = True
+            else:
+                assert False, (f"File '{csv_file_name}' was generated using '{generator}' "
+                               "which is not supported yet.  Use "
+                               "'bom_csv_grouped_by_value_with_fp' generator instead.")
+            
+        # Wrap up any requested *tracing* and return the *success* flag:
+        if tracing is not None:
+            print(f"{tracing}<=Kicad.altium_csv_read(*, '{csv_file_name}', *)=>{success}")
+        return success
+
     # Kicad.cmp_file_read():
     def cmp_file_read(self, cmp_file_name, project, tracing=None):
         # Verify argument types:
@@ -150,7 +207,7 @@ class Kicad(bom.Cad):
         return success
 
     # Kicad.csv_file_read():
-    def csv_file_read(self, csv_file_name, project, tracing=None):
+    def bom_csv_grouped_by_value_with_fp_read(self, csv_file_name, project, tracing=None):
         # Verify argument types:
         assert isinstance(csv_file_name, str) and csv_file_name.endswith(".csv")
         assert isinstance(project, bom.Project)
@@ -159,7 +216,7 @@ class Kicad(bom.Cad):
         # Perform any requested *tracing*:
         next_tracing = None if tracing is None else tracing + " "
         if tracing is not None:
-            print(f"{tracing}=>Kicad.csv_file_read(*, '{csv_file_name}')")
+            print(f"{tracing}=>bom_csv_grouped_by_value_with_fp_read(*, '{csv_file_name}')")
 
         # ...
         success = False
@@ -218,7 +275,8 @@ class Kicad(bom.Cad):
             
         # Wrap up any requested *tracing* and return the *success* flag:
         if tracing is not None:
-            print(f"{tracing}<=Kicad.csv_file_read(*, '{csv_file_name}', *)=>{success}")
+            print(f"{tracing}<=Kicad.bom_csv_grouped_by_value_with_fp_read(*, "
+                  f"'{csv_file_name}', *)=>{success}")
         return success
 
     # Kicad.file_read():
@@ -241,7 +299,14 @@ class Kicad(bom.Cad):
         if file_name.endswith(".cmp"):
             success = kicad.cmp_file_read(file_name, project, tracing=next_tracing)
         elif file_name.endswith(".csv"):
-            success = kicad.csv_file_read(file_name, project, tracing=next_tracing)
+            try:
+                success = kicad.altium_csv_read(file_name, project, tracing=next_tracing)
+            except AssertionError:
+                try:
+                    success = kicad.bom_csv_grouped_by_value_with_fp_read(file_name, project,
+                                                                          tracing=next_tracing)
+                except AsssertionError:
+                    success = False
         elif file_name.endswith(".net"):
             success = kicad.net_file_read(file_name, project, tracing=next_tracing)
 
