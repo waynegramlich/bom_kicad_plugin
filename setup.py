@@ -31,6 +31,7 @@ def long_description_read():
 environment = os.environ
 assert "BOM_VERSION" in environment, "BOM_VERSION environment variable is not set"
 version = environment["BOM_VERSION"]
+is_test = version.startswith("0.0")
 
 # Arguments to *setup*() are in alphabetical order:
 setuptools.setup(
@@ -45,14 +46,14 @@ setuptools.setup(
     entry_points = {
         "bom_manager_cad_get": ["cad_get=bom_kicad_plugin.kicad:cad_get"],
     },
-    #include_package_data=True,
-    # install_requires = [
-    #     "bs4",
-    # ],
+    include_package_data=True,
+    install_requires = [] if is_test else [
+        "bs4",
+    ],
     license="MIT",
     long_description=long_description_read(),
     long_description_content_type="text/markdown",
-    name="bom_kicad_plugin_waynegramlich",
+    name=("bom_kicad_plugin_waynegramlich" if is_test else "bom_kicad_plugin"),
     packages=[
         "bom_kicad_plugin",
     ],
