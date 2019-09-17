@@ -1,17 +1,17 @@
 # MIT License
-# 
+#
 # Copyright (c) 2019 Wayne C. Gramlich
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,9 +22,12 @@
 
 from bom_manager import bom
 import csv
+import fnmatch
 import os
+import re
 import sexpdata                 # (LISP)S-EXPression DATA package
 from sexpdata import Symbol     # (LISP) S-expression Symobl
+
 
 # cad_get():
 def cad_get(tracing=None):
@@ -43,6 +46,7 @@ def cad_get(tracing=None):
     if tracing is not None:
         print(f"{tracing}<=findchips.py:panda_get()=>*")
     return kicad
+
 
 # Kicad:
 class Kicad(bom.Cad):
@@ -72,7 +76,7 @@ class Kicad(bom.Cad):
         assert isinstance(tracing, str) or tracing is None
 
         # Perform any requested *tracing*:
-        next_tracing = None if tracing is None else tracing + " "
+        # next_tracing = None if tracing is None else tracing + " "
         if tracing is not None:
             print(f"{tracing}=>altium_csv_read(*, '{csv_file_name}')")
 
@@ -91,7 +95,7 @@ class Kicad(bom.Cad):
                     assert desired_header == actual_headers[index], f"index={index}"
                 assert (actual_headers == desired_headers), (f"Got {actual_headers} "
                                                              f"instead of {desired_headers}")
-                project_parts = list()
+                # project_parts = list()
                 for index, row in enumerate(csv_rows[2:]):
                     # Unpack *row* and further split and strip *refs_text* into *refs*:
                     line_number, name, description, designators_text, quantity = row[:5]
@@ -99,7 +103,7 @@ class Kicad(bom.Cad):
                     designators = [designator.strip() for designator in designators]
                     if tracing is not None:
                         print(f"{tracing}Row[{index}]: "
-                              f"{quantity}\t'{part_name}'\t{designators_text}")
+                              f"{quantity}\t'{name}'\t{designators_text}")
 
                     # Lookup/create the *project_part* associated with *value*:
                     project_part = project.project_part_find(name)
@@ -112,10 +116,8 @@ class Kicad(bom.Cad):
                     # Ignore footprints for now:
                     success = True
             else:
-                assert False, (f"File '{csv_file_name}' was generated using '{generator}' "
-                               "which is not supported yet.  Use "
-                               "'bom_csv_grouped_by_value_with_fp' generator instead.")
-            
+                assert False, (f"Could not succesfully read '{csv_file_name}'")
+
         # Wrap up any requested *tracing* and return the *success* flag:
         if tracing is not None:
             print(f"{tracing}<=Kicad.altium_csv_read(*, '{csv_file_name}', *)=>{success}")
@@ -124,12 +126,12 @@ class Kicad(bom.Cad):
     # Kicad.cmp_file_read():
     def cmp_file_read(self, cmp_file_name, project, tracing=None):
         # Verify argument types:
-        assert isinstance(cmp_file_name, ".cmp") and cmp_file.endswith(".cmp")
+        assert isinstance(cmp_file_name, ".cmp") and cmp_file_name.endswith(".cmp")
         assert isinstance(project, bom.Project)
         assert isinstance(tracing, str) or tracing is None
 
         # Perform any requested *tracing*:
-        next_tracing = None if tracing is None else tracing + " "
+        # next_tracing = None if tracing is None else tracing + " "
         if tracing is not None:
             print(f"{tracing}=>Kicad.cmp_file_read(*, '{cmp_file_name}, *)")
 
@@ -137,6 +139,7 @@ class Kicad(bom.Cad):
         assert False, "Kicad.cmp_file_read() needs to be fixed!!!"
 
         # Read in {cmp_file_name}:
+        success = True
         with open(cmp_file_name, "r") as cmp_stream:
             cmp_lines = cmp_stream.readlines()
 
@@ -181,7 +184,7 @@ class Kicad(bom.Cad):
                         if fnmatch.fnmatch(footprint, footprint_pattern):
                             # The footprints match:
                             pose_part = \
-                              PosePart(project, part, reference, footprint)
+                              bom.PosePart(project, part, reference, footprint)
                             project.pose_parts_append(pose_part)
                             part.pose_parts.append(pose_part)
                         else:
@@ -214,7 +217,7 @@ class Kicad(bom.Cad):
         assert isinstance(tracing, str) or tracing is None
 
         # Perform any requested *tracing*:
-        next_tracing = None if tracing is None else tracing + " "
+        # next_tracing = None if tracing is None else tracing + " "
         if tracing is not None:
             print(f"{tracing}=>bom_csv_grouped_by_value_with_fp_read(*, '{csv_file_name}')")
 
@@ -223,11 +226,11 @@ class Kicad(bom.Cad):
         with open(csv_file_name) as csv_file:
             csv_rows = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
             assert csv_rows[0][0] == "Source:"
-            source = csv_rows[0][1]
+            # source = csv_rows[0][1]
             assert csv_rows[1][0] == "Date:"
-            date = csv_rows[1],[1]
+            # date = csv_rows[1],[1]
             assert csv_rows[2][0] == "Tool:"
-            tool = csv_rows[2][1]
+            # tool = csv_rows[2][1]
             assert csv_rows[3][0] == "Generator:"
             generator = csv_rows[3][1]
             assert csv_rows[4][0] == "Component Count:"
@@ -241,7 +244,7 @@ class Kicad(bom.Cad):
                     assert desired_header == actual_headers[index], f"index={index}"
                 assert (actual_headers == desired_headers), (f"Got {actual_headers} "
                                                              f"instead of {desired_headers}")
-                project_parts = list()
+                # project_parts = list()
                 for index, row in enumerate(csv_rows[6:6+component_count]):
                     # Unpack *row* and further split and strip *refs_text* into *refs*:
                     references_text, quantity, part_name, component_name, footprint = row[:5]
@@ -272,7 +275,7 @@ class Kicad(bom.Cad):
                 assert False, (f"File '{csv_file_name}' was generated using '{generator}' "
                                "which is not supported yet.  Use "
                                "'bom_csv_grouped_by_value_with_fp' generator instead.")
-            
+
         # Wrap up any requested *tracing* and return the *success* flag:
         if tracing is not None:
             print(f"{tracing}<=Kicad.bom_csv_grouped_by_value_with_fp_read(*, "
@@ -305,7 +308,7 @@ class Kicad(bom.Cad):
                 try:
                     success = kicad.bom_csv_grouped_by_value_with_fp_read(file_name, project,
                                                                           tracing=next_tracing)
-                except AsssertionError:
+                except AssertionError:
                     success = False
         elif file_name.endswith(".net"):
             success = kicad.net_file_read(file_name, project, tracing=next_tracing)
@@ -327,18 +330,18 @@ class Kicad(bom.Cad):
         assert isinstance(tracing, str) or tracing is None
 
         # Perform any requested *tracing*:
-        next_tracing = None if tracing is None else tracing + " "
+        # next_tracing = None if tracing is None else tracing + " "
         if tracing is not None:
             print(f"{tracing}=>Kicad.net_file_read(*, '{net_file_name}', *)")
 
         # Prevent accidental double of *project* (i.e. *self*):
-        kicad = self
+        # kicad = self
         pose_parts = project.all_pose_parts
         assert len(pose_parts) == 0
 
         # Process *net_file_name* adding footprints as needed:
         success = False
-        errors = 0
+        # errors = 0
         with open(net_file_name, "r") as net_stream:
             # Read contents of *net_file_name* in as a string *net_text*:
             net_text = net_stream.read()
@@ -354,7 +357,6 @@ class Kicad(bom.Cad):
 
             # Visit each *component_se* in *net_se*:
             net_file_changed = False
-            #database = project.order.database
             components_se = Kicad.se_find(net_se, "export", "components")
 
             # Each component has the following form:
@@ -451,7 +453,7 @@ class Kicad(bom.Cad):
                         else:
                             assert False, ("previous_slit={0} current_split={1}".
                                            format(previous_split, current_split))
-    
+
                         # Only do something if it changed:
                         if previous_footprint != new_footprint:
                             # Since they changed, update in place:
@@ -554,4 +556,3 @@ class Kicad(bom.Cad):
                 result = sub_se
                 break
         return result
-
