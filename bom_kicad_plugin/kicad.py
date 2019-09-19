@@ -27,24 +27,16 @@ import os
 import re
 import sexpdata                 # (LISP)S-EXPression DATA package
 from sexpdata import Symbol     # (LISP) S-expression Symobl
-
+from bom_manager.tracing import trace
 
 # cad_get():
-def cad_get(tracing=None):
+@trace(1)
+def cad_get(tracing=""):
     # Verify argument types:
-    assert isinstance(tracing, str) or tracing is None
+    assert isinstance(tracing, str)
 
-    # Perform any requested *tracing*:
-    next_tracing = None if tracing is None else tracing + " "
-    if tracing is not None:
-        print(f"{tracing}=>findchips.py:panda_get()")
-
-    # Create the *find_chips* object:
-    kicad = Kicad(tracing=next_tracing)
-
-    # Wrap up any requested *tracing* and return *kicad*:
-    if tracing is not None:
-        print(f"{tracing}<=findchips.py:panda_get()=>*")
+    # Create the *kicad* object and return it:
+    kicad = Kicad()
     return kicad
 
 
@@ -52,33 +44,26 @@ def cad_get(tracing=None):
 class Kicad(bom.Cad):
 
     # Kicad.__init__():
-    def __init__(self, tracing=None):
+    @trace(1)
+    def __init__(self, tracing=""):
         # Verify argument types:
-        assert isinstance(tracing, str) or tracing is None
+        assert isinstance(tracing, str)
 
-        # Perform any requested *tracing*:
-        next_tracing = None if tracing is None else tracing + " "
-        if tracing is not None:
-            print(f"{tracing}=>Kicad.__init__()")
+        # Initialize the super class of the *Kicad* object (i.e. *self*):
+        super().__init__("KiCAD")
 
-        # Initialize the super class of the *FindChips* object (i.e. *self*):
-        super().__init__("KiCAD", tracing=next_tracing)
 
-        # Perform any requested *tracing*:
-        if tracing is not None:
-            print(f"{tracing}<=Kicad.__init__()")
+    # Kicad.__str__():
+    def __str__(self):
+        return "Kicad()"
 
     # Kicad.altium_csv_read():
-    def altium_csv_read(self, csv_file_name, project, tracing=None):
+    @trace(1)
+    def altium_csv_read(self, csv_file_name, project, tracing=""):
         # Verify argument types:
         assert isinstance(csv_file_name, str) and csv_file_name.endswith(".csv")
         assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str) or tracing is None
-
-        # Perform any requested *tracing*:
-        # next_tracing = None if tracing is None else tracing + " "
-        if tracing is not None:
-            print(f"{tracing}=>altium_csv_read(*, '{csv_file_name}')")
+        assert isinstance(tracing, str)
 
         # ...
         success = False
@@ -101,7 +86,7 @@ class Kicad(bom.Cad):
                     line_number, name, description, designators_text, quantity = row[:5]
                     designators = designators_text.split(",")
                     designators = [designator.strip() for designator in designators]
-                    if tracing is not None:
+                    if tracing:
                         print(f"{tracing}Row[{index}]: "
                               f"{quantity}\t'{name}'\t{designators_text}")
 
@@ -117,23 +102,14 @@ class Kicad(bom.Cad):
                     success = True
             else:
                 assert False, (f"Could not succesfully read '{csv_file_name}'")
-
-        # Wrap up any requested *tracing* and return the *success* flag:
-        if tracing is not None:
-            print(f"{tracing}<=Kicad.altium_csv_read(*, '{csv_file_name}', *)=>{success}")
         return success
 
     # Kicad.cmp_file_read():
-    def cmp_file_read(self, cmp_file_name, project, tracing=None):
+    def xxx_cmp_file_read(self):
         # Verify argument types:
         assert isinstance(cmp_file_name, ".cmp") and cmp_file_name.endswith(".cmp")
         assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str) or tracing is None
-
-        # Perform any requested *tracing*:
-        # next_tracing = None if tracing is None else tracing + " "
-        if tracing is not None:
-            print(f"{tracing}=>Kicad.cmp_file_read(*, '{cmp_file_name}, *)")
+        assert isinstance(tracing, str)
 
         # This code is really old, so just fail for now:
         assert False, "Kicad.cmp_file_read() needs to be fixed!!!"
@@ -203,23 +179,15 @@ class Kicad(bom.Cad):
                     print("'{0}', line {1}: Unrecognized line '{2}'".
                           format(cmp_file_name, line_number, line))
                     errors = errors + 1
-
-        # Wrap up any requested *tracing*:
-        if tracing is not None:
-            print(f"{tracing}<=Kicad.cmp_file_read(*, '{cmp_file_name}, *)=>{success}")
         return success
 
     # Kicad.csv_file_read():
-    def bom_csv_grouped_by_value_with_fp_read(self, csv_file_name, project, tracing=None):
+    @trace(1)
+    def bom_csv_grouped_by_value_with_fp_read(self, csv_file_name, project, tracing=""):
         # Verify argument types:
         assert isinstance(csv_file_name, str) and csv_file_name.endswith(".csv")
         assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str) or tracing is None
-
-        # Perform any requested *tracing*:
-        # next_tracing = None if tracing is None else tracing + " "
-        if tracing is not None:
-            print(f"{tracing}=>bom_csv_grouped_by_value_with_fp_read(*, '{csv_file_name}')")
+        assert isinstance(tracing, str)
 
         # ...
         success = False
@@ -250,7 +218,7 @@ class Kicad(bom.Cad):
                     references_text, quantity, part_name, component_name, footprint = row[:5]
                     references = references_text.split(",")
                     references = [reference.strip() for reference in references]
-                    if tracing is not None:
+                    if tracing:
                         print(f"{tracing}Row[{index}]: "
                               f"{quantity}\t'{part_name}'\t{references_text}")
 
@@ -276,50 +244,41 @@ class Kicad(bom.Cad):
                                "which is not supported yet.  Use "
                                "'bom_csv_grouped_by_value_with_fp' generator instead.")
 
-        # Wrap up any requested *tracing* and return the *success* flag:
-        if tracing is not None:
-            print(f"{tracing}<=Kicad.bom_csv_grouped_by_value_with_fp_read(*, "
-                  f"'{csv_file_name}', *)=>{success}")
         return success
 
     # Kicad.file_read():
-    def file_read(self, file_name, project, tracing=None):
+    @trace(1)
+    def file_read(self, file_name, project, tracing=""):
         # Verify argument types:
         assert isinstance(file_name, str)
         assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str) or tracing is None
+        assert isinstance(tracing, str)
 
         # Perform any requested *tracing*:
         success = False
-        next_tracing = None if tracing is None else tracing + " "
-        if tracing is not None:
-            print(f"{tracing}=>Kicad.load(*, '{file_name}')")
 
         # Dispatach on the *file_name* suffix:
         kicad = self
         success = False
         assert os.path.isfile(file_name), f"File '{file_name}' does not exist"
         if file_name.endswith(".cmp"):
-            success = kicad.cmp_file_read(file_name, project, tracing=next_tracing)
+            success = kicad.cmp_file_read(file_name, project)
         elif file_name.endswith(".csv"):
             try:
-                success = kicad.altium_csv_read(file_name, project, tracing=next_tracing)
+                success = kicad.altium_csv_read(file_name, project)
             except AssertionError:
                 try:
-                    success = kicad.bom_csv_grouped_by_value_with_fp_read(file_name, project,
-                                                                          tracing=next_tracing)
+                    success = kicad.bom_csv_grouped_by_value_with_fp_read(file_name, project)
                 except AssertionError:
                     success = False
         elif file_name.endswith(".net"):
-            success = kicad.net_file_read(file_name, project, tracing=next_tracing)
+            success = kicad.net_file_read(file_name, project)
 
-        # Wrap up any requested *tracing* and return the *success* flag:
-        if tracing is not None:
-            print(f"{tracing}<=Kicad.load(*, '{file_name}', *)=>{success}")
         return success
 
     # Kicad.net_file_read():
-    def net_file_read(self, net_file_name, project, tracing=None):
+    @trace(1)
+    def net_file_read(self, net_file_name, project, tracing=""):
         """ Read in net file for the project object.
         """
 
@@ -327,12 +286,7 @@ class Kicad(bom.Cad):
         assert isinstance(self, Kicad)
         assert isinstance(net_file_name, str) and net_file_name.endswith(".net")
         assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str) or tracing is None
-
-        # Perform any requested *tracing*:
-        # next_tracing = None if tracing is None else tracing + " "
-        if tracing is not None:
-            print(f"{tracing}=>Kicad.net_file_read(*, '{net_file_name}', *)")
+        assert isinstance(tracing, str)
 
         # Prevent accidental double of *project* (i.e. *self*):
         # kicad = self
@@ -345,7 +299,7 @@ class Kicad(bom.Cad):
         with open(net_file_name, "r") as net_stream:
             # Read contents of *net_file_name* in as a string *net_text*:
             net_text = net_stream.read()
-            if tracing is not None:
+            if tracing:
                 print(f"{tracing}Read in file '{net_file_name}'")
 
             # Parse *net_text* into *net_se* (i.e. net S-expression):
@@ -521,9 +475,6 @@ class Kicad(bom.Cad):
                 net_file.write(net_se_string)
                 net_file.close()
 
-        # Wrap up any requested *tracing* and return *success*:
-        if tracing is not None:
-            print(f"{tracing}<=Kicad.net_file_read(*, '{net_file_name}', *)=>{success}")
         return success
 
     # "se" stands for LISP "S Expression":
