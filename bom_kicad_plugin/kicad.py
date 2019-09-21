@@ -50,12 +50,12 @@ class Kicad(bom.Cad):
         assert isinstance(tracing, str)
 
         # Initialize the super class of the *Kicad* object (i.e. *self*):
-        super().__init__("KiCAD")
+        super().__init__("Kicad")
 
 
     # Kicad.__str__():
     def __str__(self):
-        return "Kicad()"
+        return "Kicad('Kicad')"
 
     # Kicad.altium_csv_read():
     @trace(1)
