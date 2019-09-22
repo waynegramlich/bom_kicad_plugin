@@ -22,7 +22,6 @@
 
 from bom_manager import bom
 import csv
-import fnmatch
 import os
 import re
 import sexpdata                 # (LISP)S-EXPression DATA package
@@ -51,7 +50,6 @@ class Kicad(bom.Cad):
 
         # Initialize the super class of the *Kicad* object (i.e. *self*):
         super().__init__("Kicad")
-
 
     # Kicad.__str__():
     def __str__(self):
@@ -102,83 +100,6 @@ class Kicad(bom.Cad):
                     success = True
             else:
                 assert False, (f"Could not succesfully read '{csv_file_name}'")
-        return success
-
-    # Kicad.cmp_file_read():
-    def xxx_cmp_file_read(self):
-        # Verify argument types:
-        assert isinstance(cmp_file_name, ".cmp") and cmp_file_name.endswith(".cmp")
-        assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str)
-
-        # This code is really old, so just fail for now:
-        assert False, "Kicad.cmp_file_read() needs to be fixed!!!"
-
-        # Read in {cmp_file_name}:
-        success = True
-        with open(cmp_file_name, "r") as cmp_stream:
-            cmp_lines = cmp_stream.readlines()
-
-            # Process each {line} in {cmp_lines}:
-            database = project.database
-            errors = 0
-            line_number = 0
-            for line in cmp_lines:
-                # Keep track of {line} number for error messages:
-                line_number = line_number + 1
-
-                # There are three values we care about:
-                if line.startswith("BeginCmp"):
-                    # Clear out the values:
-                    reference = None
-                    part_name = None
-                    footprint = None
-                elif line.startswith("Reference = "):
-                    reference = line[12:-2]
-                elif line.startswith("ValeurCmp = "):
-                    part_name = line[12:-2]
-                    # print("part_name:{0}".format(part_name))
-                    double_underscore_index = part_name.find("__")
-                    if double_underscore_index >= 0:
-                        shortened_part_name = \
-                          part_name[:double_underscore_index]
-                        # print("Shorten part name '{0}' => '{1}'".
-                        #  format(part_name, shortened_part_name))
-                        part_name = shortened_part_name
-                elif line.startswith("IdModule  "):
-                    footprint = line[12:-2].split(':')[1]
-                    # print("footprint='{0}'".format(footprint))
-                elif line.startswith("EndCmp"):
-                    part = database.part_lookup(part_name)
-                    if part is None:
-                        # {part_name} not in {database}; output error message:
-                        print("File '{0}', line {1}: Part Name {2} ({3} {4}) not in database".
-                              format(cmp_file_name, line_number, part_name, reference, footprint))
-                        errors = errors + 1
-                    else:
-                        footprint_pattern = part.footprint_pattern
-                        if fnmatch.fnmatch(footprint, footprint_pattern):
-                            # The footprints match:
-                            pose_part = \
-                              bom.PosePart(project, part, reference, footprint)
-                            project.pose_parts_append(pose_part)
-                            part.pose_parts.append(pose_part)
-                        else:
-                            print(("File '{0}',  line {1}: {2}:{3} Footprint" +
-                                   "'{4}' does not match database '{5}'").format(
-                                   cmp_file_name, line_number,
-                                   reference, part_name, footprint,
-                                   footprint_pattern))
-                            errors = errors + 1
-                elif (line == "\n" or line.startswith("TimeStamp") or
-                      line.startswith("EndListe") or line.startswith("Cmp-Mod V01")):
-                    # Ignore these lines:
-                    line = line
-                else:
-                    # Unrecognized {line}:
-                    print("'{0}', line {1}: Unrecognized line '{2}'".
-                          format(cmp_file_name, line_number, line))
-                    errors = errors + 1
         return success
 
     # Kicad.csv_file_read():
