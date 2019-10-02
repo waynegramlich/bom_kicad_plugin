@@ -21,21 +21,19 @@
 # SOFTWARE.
 
 from bom_manager import bom
+from bom_manager.tracing import trace
 import csv
 import os
 import re
-import sexpdata                 # (LISP)S-EXPression DATA package
+import sexpdata                 # type: ignore  # (LISP)S-EXPression DATA package
 from sexpdata import Symbol     # (LISP) S-expression Symobl
-from bom_manager.tracing import trace
+from typing import Any, List, TextIO
 
 # cad_get():
 @trace(1)
-def cad_get(tracing=""):
-    # Verify argument types:
-    assert isinstance(tracing, str)
-
+def cad_get(tracing: str = "") -> "Kicad":
     # Create the *kicad* object and return it:
-    kicad = Kicad()
+    kicad: Kicad = Kicad()
     return kicad
 
 
@@ -44,56 +42,57 @@ class Kicad(bom.Cad):
 
     # Kicad.__init__():
     @trace(1)
-    def __init__(self, tracing=""):
-        # Verify argument types:
-        assert isinstance(tracing, str)
-
+    def __init__(self, tracing: str = "") -> None:
         # Initialize the super class of the *Kicad* object (i.e. *self*):
         super().__init__("Kicad")
 
     # Kicad.__str__():
-    def __str__(self):
+    def __str__(self) -> str:
         return "Kicad('Kicad')"
 
     # Kicad.altium_csv_read():
     @trace(1)
-    def altium_csv_read(self, csv_file_name, project, tracing=""):
-        # Verify argument types:
-        assert isinstance(csv_file_name, str) and csv_file_name.endswith(".csv")
-        assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str)
-
+    def altium_csv_read(self, csv_file_name: str, project: bom.Project, tracing: str = "") -> bool:
         # ...
-        success = False
+        success: bool = False
+        csv_file: TextIO
         with open(csv_file_name, encoding="iso-8859-1") as csv_file:
-            csv_rows = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
-            actual_headers = tuple(csv_rows[0])
+            csv_rows: List[List[str]] = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
+            actual_headers: List[str] = csv_rows[0]
             if True:
-                desired_headers = (
+                desired_headers: List[str] = [
                     "Line #", "Name", "Description", "Designator", "Quantity", "TargetPrice",
                     "Manufacturer 1", "Manufacturer Part Number 1", "Manufacturer Lifecycle 1",
                     "Supplier 1", "Supplier Part Number 1", "Supplier Unit Price 1",
-                    "Supplier Subtotal 1")
+                    "Supplier Subtotal 1"]
+                index: int
                 for index, desired_header in enumerate(desired_headers):
                     assert desired_header == actual_headers[index], f"index={index}"
                 assert (actual_headers == desired_headers), (f"Got {actual_headers} "
                                                              f"instead of {desired_headers}")
                 # project_parts = list()
+                row: List[str]
                 for index, row in enumerate(csv_rows[2:]):
                     # Unpack *row* and further split and strip *refs_text* into *refs*:
+                    line_number: str
+                    name: str
+                    description: str
+                    designators_text: str
+                    quantity: str
                     line_number, name, description, designators_text, quantity = row[:5]
-                    designators = designators_text.split(",")
+                    designators: List[str] = designators_text.split(",")
                     designators = [designator.strip() for designator in designators]
                     if tracing:
                         print(f"{tracing}Row[{index}]: "
                               f"{quantity}\t'{name}'\t{designators_text}")
 
                     # Lookup/create the *project_part* associated with *value*:
-                    project_part = project.project_part_find(name)
+                    project_part: bom.ProjectPart = project.project_part_find(name)
 
                     # Create one *pose_part* for each *reference* in *references*:
                     for designator in designators:
-                        pose_part = bom.PosePart(project, project_part, designator, "")
+                        pose_part: bom.PosePart = bom.PosePart(project,
+                                                               project_part, designator, "")
                         project.pose_part_append(pose_part)
 
                     # Ignore footprints for now:
@@ -104,14 +103,11 @@ class Kicad(bom.Cad):
 
     # Kicad.csv_file_read():
     @trace(1)
-    def bom_csv_grouped_by_value_with_fp_read(self, csv_file_name, project, tracing=""):
-        # Verify argument types:
-        assert isinstance(csv_file_name, str) and csv_file_name.endswith(".csv")
-        assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str)
-
+    def bom_csv_grouped_by_value_with_fp_read(self, csv_file_name: str, project: bom.Project,
+                                              tracing: str = "") -> bool:
         # ...
-        success = False
+        success: bool = False
+        csv_file: TextIO
         with open(csv_file_name) as csv_file:
             csv_rows = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
             assert csv_rows[0][0] == "Source:"
@@ -169,21 +165,14 @@ class Kicad(bom.Cad):
 
     # Kicad.file_read():
     @trace(1)
-    def file_read(self, file_name, project, tracing=""):
-        # Verify argument types:
-        assert isinstance(file_name, str)
-        assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str)
-
-        # Perform any requested *tracing*:
-        success = False
-
+    def file_read(self, file_name: str, project: bom.Project, tracing: str = "") -> bool:
         # Dispatach on the *file_name* suffix:
-        kicad = self
-        success = False
+        kicad: Kicad = self
+        success: bool = False
         assert os.path.isfile(file_name), f"File '{file_name}' does not exist"
         if file_name.endswith(".cmp"):
-            success = kicad.cmp_file_read(file_name, project)
+            # success = kicad.cmp_file_read(file_name, project)
+            assert False, ".cmp files are no longer supported."
         elif file_name.endswith(".csv"):
             try:
                 success = kicad.altium_csv_read(file_name, project)
@@ -199,32 +188,26 @@ class Kicad(bom.Cad):
 
     # Kicad.net_file_read():
     @trace(1)
-    def net_file_read(self, net_file_name, project, tracing=""):
+    def net_file_read(self, net_file_name: str, project: bom.Project, tracing: str = "") -> bool:
         """ Read in net file for the project object.
         """
-
-        # Verify argument types:
-        assert isinstance(self, Kicad)
-        assert isinstance(net_file_name, str) and net_file_name.endswith(".net")
-        assert isinstance(project, bom.Project)
-        assert isinstance(tracing, str)
-
         # Prevent accidental double of *project* (i.e. *self*):
         # kicad = self
-        pose_parts = project.all_pose_parts
+        pose_parts: List[bom.PosePart] = project.all_pose_parts
         assert len(pose_parts) == 0
 
         # Process *net_file_name* adding footprints as needed:
-        success = False
+        success: bool = False
         # errors = 0
-        with open(net_file_name, "r") as net_stream:
+        net_file: TextIO
+        with open(net_file_name, "r") as net_file:
             # Read contents of *net_file_name* in as a string *net_text*:
-            net_text = net_stream.read()
+            net_text: str = net_file.read()
             if tracing:
                 print(f"{tracing}Read in file '{net_file_name}'")
 
             # Parse *net_text* into *net_se* (i.e. net S-expression):
-            net_se = sexpdata.loads(net_text)
+            net_se: List[Any] = sexpdata.loads(net_text)
             # print("\nsexpedata.dumps=", sexpdata.dumps(net_se))
             # print("")
             # print("net_se=", net_se)
@@ -232,7 +215,7 @@ class Kicad(bom.Cad):
 
             # Visit each *component_se* in *net_se*:
             net_file_changed = False
-            components_se = Kicad.se_find(net_se, "export", "components")
+            components_se: List[Any] = Kicad.se_find(net_se, "export", "components")
 
             # Each component has the following form:
             #
@@ -243,20 +226,23 @@ class Kicad(bom.Cad):
             #          (sheetpath ....)
             #          (tstamp xxxxxxxx))
             # print("components=", components_se)
+            component_index: int
+            component_se: List[Any]
             for component_index, component_se in enumerate(components_se[1:]):
                 # print("component_se=", component_se)
                 # print("")
 
                 # Grab the *reference* from *component_se*:
-                reference_se = Kicad.se_find(component_se, "comp", "ref")
-                reference = reference_se[1].value()
+                reference_se: List[Any] = Kicad.se_find(component_se, "comp", "ref")
+                reference: Any = reference_se[1].value()
                 # print("reference_se=", reference_se)
                 # print("")
 
                 # Find *part_name_se* from *component_se*:
-                part_name_se = Kicad.se_find(component_se, "comp", "value")
+                part_name_se: List[Any] = Kicad.se_find(component_se, "comp", "value")
 
                 # Suprisingly tedious, extract *part_name* as a string:
+                part_name: str = "??"
                 if isinstance(part_name_se[1], Symbol):
                     part_name = part_name_se[1].value()
                 elif isinstance(part_name_se[1], int):
@@ -270,17 +256,16 @@ class Kicad(bom.Cad):
                       format(part_name_se[1])
 
                 # Strip *comment* out of *part_name* if it exists:
-                comment = ""
-                colon_index = part_name.find(':')
+                colon_index: int = part_name.find(':')
                 if colon_index >= 0:
-                    comment = part_name[colon_index + 1:]
+                    comment: str = part_name[colon_index + 1:]
                     part_name = part_name[0:colon_index]
 
                 # Now see if we have a match for *part_name* in *database*:
-                project_part = project.project_part_find(part_name)
+                project_part: bom.ProjectPart = project.project_part_find(part_name)
 
                 # We have a match; create the *pose_part*:
-                pose_part = bom.PosePart(project, project_part, reference, comment)
+                pose_part: bom.PosePart = bom.PosePart(project, project_part, reference, comment)
                 project.pose_part_append(pose_part)
 
                 # Ignore footprints for now:
@@ -346,43 +331,67 @@ class Kicad(bom.Cad):
             if net_file_changed:
                 print("Updating '{0}' with new footprints".
                       format(net_file_name))
-                net_file = open(net_file_name, "wa")
-                # sexpdata.dump(net_se, net_file)
-                net_se_string = sexpdata.dumps(net_se)
-                # sexpdata.dump(net_se, net_file)
+                with open(net_file_name, "w") as net_file:
+                    # sexpdata.dump(net_se, net_file)
+                    net_se_string = sexpdata.dumps(net_se)
+                    # sexpdata.dump(net_se, net_file)
 
-                # Now use some regular expressions to improve formatting to be more like
-                # what KiCad outputs:
-                net_se_string = re.sub(" \\(design ", "\n  (design ", net_se_string)
+                    # Now use some regular expressions to improve formatting to be more like
+                    # what KiCad outputs:
+                    net_se_string = re.sub(" \\(design ",
+                                           "\n  (design ", net_se_string)
 
-                # Sheet part of file:
-                net_se_string = re.sub(" \\(sheet ",       "\n    (sheet ",         net_se_string)
-                net_se_string = re.sub(" \\(title_block ", "\n      (title_block ", net_se_string)
-                net_se_string = re.sub(" \\(title ",       "\n        (title ",     net_se_string)
-                net_se_string = re.sub(" \\(company ",     "\n        (company ",   net_se_string)
-                net_se_string = re.sub(" \\(rev ",         "\n        (rev ",       net_se_string)
-                net_se_string = re.sub(" \\(date ",        "\n        (date ",      net_se_string)
-                net_se_string = re.sub(" \\(source ",      "\n        (source ",    net_se_string)
-                net_se_string = re.sub(" \\(comment ",     "\n        (comment ",   net_se_string)
+                    # Sheet part of file:
+                    net_se_string = re.sub(" \\(sheet ",
+                                           "\n    (sheet ", net_se_string)
+                    net_se_string = re.sub(" \\(title_block ",
+                                           "\n      (title_block ", net_se_string)
+                    net_se_string = re.sub(" \\(title ",
+                                           "\n        (title ", net_se_string)
+                    net_se_string = re.sub(" \\(company ",
+                                           "\n        (company ", net_se_string)
+                    net_se_string = re.sub(" \\(rev ",
+                                           "\n        (rev ", net_se_string)
+                    net_se_string = re.sub(" \\(date ",
+                                           "\n        (date ", net_se_string)
+                    net_se_string = re.sub(" \\(source ",
+                                           "\n        (source ", net_se_string)
+                    net_se_string = re.sub(" \\(comment ",
+                                           "\n        (comment ", net_se_string)
 
                 # Components part of file:
-                net_se_string = re.sub(" \\(components ", "\n  (components ",    net_se_string)
-                net_se_string = re.sub(" \\(comp ",       "\n    (comp ",        net_se_string)
-                net_se_string = re.sub(" \\(value ",      "\n      (value ",     net_se_string)
-                net_se_string = re.sub(" \\(footprint ",  "\n      (footprint ", net_se_string)
-                net_se_string = re.sub(" \\(libsource ",  "\n      (libsource ", net_se_string)
-                net_se_string = re.sub(" \\(sheetpath ",  "\n      (sheetpath ", net_se_string)
-                net_se_string = re.sub(" \\(path ",       "\n      (path ",      net_se_string)
-                net_se_string = re.sub(" \\(tstamp ",     "\n      (tstamp ",    net_se_string)
+                net_se_string = re.sub(" \\(components ",
+                                       "\n  (components ", net_se_string)
+                net_se_string = re.sub(" \\(comp ",
+                                       "\n    (comp ", net_se_string)
+                net_se_string = re.sub(" \\(value ",
+                                       "\n      (value ", net_se_string)
+                net_se_string = re.sub(" \\(footprint ",
+                                       "\n      (footprint ", net_se_string)
+                net_se_string = re.sub(" \\(libsource ",
+                                       "\n      (libsource ", net_se_string)
+                net_se_string = re.sub(" \\(sheetpath ",
+                                       "\n      (sheetpath ", net_se_string)
+                net_se_string = re.sub(" \\(path ",
+                                       "\n      (path ", net_se_string)
+                net_se_string = re.sub(" \\(tstamp ",
+                                       "\n      (tstamp ", net_se_string)
 
                 # Library parts part of file
-                net_se_string = re.sub(" \\(libparts ",    "\n  (libparts ",    net_se_string)
-                net_se_string = re.sub(" \\(libpart ",     "\n    (libpart ",   net_se_string)
-                net_se_string = re.sub(" \\(description ", "\n      (description ",  net_se_string)
-                net_se_string = re.sub(" \\(fields ",      "\n      (fields ",  net_se_string)
-                net_se_string = re.sub(" \\(field ",       "\n        (field ", net_se_string)
-                net_se_string = re.sub(" \\(pins ",        "\n      (pins ",    net_se_string)
-                # net_se_string = re.sub(" \\(pin ",         "\n        (pin ",   net_se_string)
+                net_se_string = re.sub(" \\(libparts ",
+                                       "\n  (libparts ", net_se_string)
+                net_se_string = re.sub(" \\(libpart ",
+                                       "\n    (libpart ", net_se_string)
+                net_se_string = re.sub(" \\(description ",
+                                       "\n      (description ",  net_se_string)
+                net_se_string = re.sub(" \\(fields ",
+                                       "\n      (fields ",  net_se_string)
+                net_se_string = re.sub(" \\(field ",
+                                       "\n        (field ", net_se_string)
+                net_se_string = re.sub(" \\(pins ",
+                                       "\n      (pins ", net_se_string)
+                # net_se_string = re.sub(" \\(pin ",
+                #                        "\n        (pin ", net_se_string)
 
                 # Network portion of file:
                 net_se_string = re.sub(" \\(nets ", "\n  (nets ", net_se_string)
@@ -394,13 +403,12 @@ class Kicad(bom.Cad):
                 # net_se_string = re.sub(" \\.", ".", net_se_string)
 
                 net_file.write(net_se_string)
-                net_file.close()
 
         return success
 
     # "se" stands for LISP "S Expression":
     @staticmethod
-    def se_find(se, base_name, key_name):
+    def se_find(se: List[Any], base_name: str, key_name: str) -> List[Any]:
         """ {}: Find *key_name* in *se* and return its value. """
 
         # *se* is a list of the form:
@@ -410,20 +418,16 @@ class Kicad(bom.Cad):
         # This routine searches through the *[keyI, valueI]* pairs
         # and returnts the *valueI* that corresponds to *key_name*.
 
-        # Check argument types:
-        assert isinstance(se, list)
-        assert isinstance(base_name, str)
-        assert isinstance(key_name, str)
-
         # Do some sanity checking:
-        size = len(se)
+        size: int = len(se)
         assert size > 0
         assert se[0] == Symbol(base_name)
 
-        result = None
-        key_symbol = Symbol(key_name)
+        result: List[Any] = list()
+        key_symbol: Symbol = Symbol(key_name)
+        index: int
         for index in range(1, size):
-            sub_se = se[index]
+            sub_se: List[Any] = se[index]
             if len(sub_se) > 0 and sub_se[0] == key_symbol:
                 result = sub_se
                 break

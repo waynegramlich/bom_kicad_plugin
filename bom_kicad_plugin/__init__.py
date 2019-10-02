@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 
-def main():
+def main() -> int:
     print("=>bom_find_chips.__init__.py=>main()")
     print("<=bom_find_chips.__init__.py=>main()")
+    return 0
