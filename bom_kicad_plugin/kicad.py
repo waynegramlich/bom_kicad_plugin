@@ -256,9 +256,10 @@ class Kicad(bom.Cad):
                       format(part_name_se[1])
 
                 # Strip *comment* out of *part_name* if it exists:
+                comment: str = ""
                 colon_index: int = part_name.find(':')
                 if colon_index >= 0:
-                    comment: str = part_name[colon_index + 1:]
+                    comment = part_name[colon_index + 1:]
                     part_name = part_name[0:colon_index]
 
                 # Now see if we have a match for *part_name* in *database*:
