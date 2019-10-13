@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from bom_manager import bom
-from bom_manager.tracing import trace
+from bom_manager.tracing import trace, tracing_get
 import csv
 import os
 import re
@@ -31,7 +31,7 @@ from typing import Any, List, TextIO
 
 # cad_get():
 @trace(1)
-def cad_get(tracing: str = "") -> "Kicad":
+def cad_get() -> "Kicad":
     # Create the *kicad* object and return it:
     kicad: Kicad = Kicad()
     return kicad
@@ -42,7 +42,7 @@ class Kicad(bom.Cad):
 
     # Kicad.__init__():
     @trace(1)
-    def __init__(self, tracing: str = "") -> None:
+    def __init__(self) -> None:
         # Initialize the super class of the *Kicad* object (i.e. *self*):
         super().__init__("Kicad")
 
@@ -52,10 +52,11 @@ class Kicad(bom.Cad):
 
     # Kicad.altium_csv_read():
     @trace(1)
-    def altium_csv_read(self, csv_file_name: str, project: bom.Project, tracing: str = "") -> bool:
+    def altium_csv_read(self, csv_file_name: str, project: bom.Project) -> bool:
         # ...
         success: bool = False
         csv_file: TextIO
+        tracing: str = tracing_get()
         with open(csv_file_name, encoding="iso-8859-1") as csv_file:
             csv_rows: List[List[str]] = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
             actual_headers: List[str] = csv_rows[0]
@@ -103,11 +104,12 @@ class Kicad(bom.Cad):
 
     # Kicad.csv_file_read():
     @trace(1)
-    def bom_csv_grouped_by_value_with_fp_read(self, csv_file_name: str, project: bom.Project,
-                                              tracing: str = "") -> bool:
+    def bom_csv_grouped_by_value_with_fp_read(self, csv_file_name: str,
+                                              project: bom.Project) -> bool:
         # ...
         success: bool = False
         csv_file: TextIO
+        tracing: str = tracing_get()
         with open(csv_file_name) as csv_file:
             csv_rows = list(csv.reader(csv_file, delimiter=",", quotechar='"'))
             assert csv_rows[0][0] == "Source:"
@@ -165,7 +167,7 @@ class Kicad(bom.Cad):
 
     # Kicad.file_read():
     @trace(1)
-    def file_read(self, file_name: str, project: bom.Project, tracing: str = "") -> bool:
+    def file_read(self, file_name: str, project: bom.Project) -> bool:
         # Dispatach on the *file_name* suffix:
         kicad: Kicad = self
         success: bool = False
@@ -188,7 +190,7 @@ class Kicad(bom.Cad):
 
     # Kicad.net_file_read():
     @trace(1)
-    def net_file_read(self, net_file_name: str, project: bom.Project, tracing: str = "") -> bool:
+    def net_file_read(self, net_file_name: str, project: bom.Project) -> bool:
         """ Read in net file for the project object.
         """
         # Prevent accidental double of *project* (i.e. *self*):
@@ -199,6 +201,7 @@ class Kicad(bom.Cad):
         # Process *net_file_name* adding footprints as needed:
         success: bool = False
         # errors = 0
+        tracing: str = tracing_get()
         net_file: TextIO
         with open(net_file_name, "r") as net_file:
             # Read contents of *net_file_name* in as a string *net_text*:
